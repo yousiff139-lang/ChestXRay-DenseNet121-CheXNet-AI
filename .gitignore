@@ -45,7 +45,8 @@ backend/test_panoramic_scan.py
 backend/test_pipeline.py
 scratch/
 
-# Unused weights
+# Model weights (Local cached PyTorch checkpoints)
+backend/models/weights/*.pth
 backend/models/weights/nsitnov_dental.pt
 backend/models/weights/sabagul_caries.pt
 
@@ -65,6 +66,9 @@ out/
 .turbo/
 *.tsbuildinfo
 
-# OS files
+# OS & Editor files
 .DS_Store
 Thumbs.db
+.vscode/
+Presentations/
+*.pdf

@@ -1,236 +1,222 @@
 """
-Image preprocessing service for dental X-ray images.
+DICOM Preprocessing Service for Chest X-Ray Classification.
 
-Automatically detects and crops the X-ray film region from real-world
-photographs (removing hands, gloves, backgrounds) and applies CLAHE
-contrast enhancement to boost model accuracy.
+Handles DICOM file parsing, metadata extraction, and image conversion
+for chest X-ray classification. Simplified from the dental preprocessing
+pipeline (no CLAHE/quadrant decomposition needed for classification).
 """
 
-import cv2
-import numpy as np
-from PIL import Image
-import tempfile
-import os
 import logging
-from typing import Tuple, Optional
+import os
+import tempfile
+from typing import Tuple
+
+import numpy as np
+import pydicom
+from PIL import Image
+from fastapi import HTTPException
+
+from ..models.classification import DicomMetadata, ImageInfo
 
 logger = logging.getLogger(__name__)
 
 
 class PreprocessingService:
-    """Preprocesses dental X-ray images before inference."""
+    """Service for DICOM preprocessing and image preparation."""
 
-    # Minimum fraction of the total image area that a valid X-ray region
-    # must occupy.  If the largest dark contour is smaller than this we
-    # assume the image is already a clean X-ray and skip cropping.
-    MIN_XRAY_AREA_FRACTION = 0.04  # 4 %
-    # Maximum fraction — reject contours that span the entire image
-    MAX_XRAY_AREA_FRACTION = 0.92  # 92 %
-
-    # CLAHE parameters
-    CLAHE_CLIP_LIMIT = 3.0
-    CLAHE_TILE_GRID = (8, 8)
-
-    # Padding around the detected X-ray region (fraction of region size)
-    CROP_PADDING = 0.02  # 2 % padding
-
-    def preprocess_image(self, image_path: str) -> Tuple[str, dict]:
+    def parse_dicom_metadata(self, dicom_file_path: str) -> DicomMetadata:
         """
-        Full preprocessing pipeline:
-        1. Auto-crop X-ray film region (if photo contains background)
-        2. Apply CLAHE contrast enhancement
-        3. Save processed image to a temp file
+        Parse DICOM metadata from file.
 
         Args:
-            image_path: Path to the original image
+            dicom_file_path: Path to the DICOM file
 
         Returns:
-            Tuple of (processed_image_path, preprocessing_info_dict)
+            DicomMetadata: Parsed metadata
         """
-        info = {
-            "cropped": False,
-            "clahe_applied": False,
-            "original_size": None,
-            "crop_region": None,
-            "processed_size": None,
-        }
-
         try:
-            # Read the image
-            img = cv2.imread(image_path)
-            if img is None:
-                logger.warning(
-                    f"OpenCV could not read {image_path}; skipping preprocessing"
-                )
-                return image_path, info
+            dicom_data = pydicom.dcmread(dicom_file_path)
 
-            info["original_size"] = list(img.shape[:2])  # [height, width]
+            pixel_spacing = None
+            if hasattr(dicom_data, "PixelSpacing"):
+                pixel_spacing = [float(x) for x in dicom_data.PixelSpacing]
 
-            # Step 1: Detect and crop X-ray region (phone photos of films only)
-            cropped_img, crop_region = self._auto_crop_xray(img)
-            if crop_region is not None:
-                info["cropped"] = True
-                info["crop_region"] = crop_region
-                img = cropped_img
-                logger.info(
-                    f"Auto-cropped X-ray region: {crop_region}"
-                )
-
-            # Step 2: Apply CLAHE contrast enhancement
-            enhanced_img = self._apply_clahe(img)
-            info["clahe_applied"] = True
-
-            info["processed_size"] = list(enhanced_img.shape[:2])
-
-            # Step 3: Save to a temporary file
-            temp_fd, temp_path = tempfile.mkstemp(suffix=".jpg")
-            os.close(temp_fd)
-            cv2.imwrite(temp_path, enhanced_img, [cv2.IMWRITE_JPEG_QUALITY, 95])
-
-            logger.info(
-                f"Preprocessing complete: "
-                f"cropped={info['cropped']}, "
-                f"original={info['original_size']}, "
-                f"processed={info['processed_size']}"
+            metadata = DicomMetadata(
+                patient_id=getattr(dicom_data, "PatientID", None),
+                patient_name=(
+                    str(getattr(dicom_data, "PatientName", None))
+                    if hasattr(dicom_data, "PatientName")
+                    else None
+                ),
+                patient_birth_date=getattr(dicom_data, "PatientBirthDate", None),
+                patient_sex=getattr(dicom_data, "PatientSex", None),
+                study_date=getattr(dicom_data, "StudyDate", None),
+                study_time=getattr(dicom_data, "StudyTime", None),
+                study_description=getattr(dicom_data, "StudyDescription", None),
+                series_description=getattr(dicom_data, "SeriesDescription", None),
+                modality=getattr(dicom_data, "Modality", None),
+                manufacturer=getattr(dicom_data, "Manufacturer", None),
+                manufacturer_model_name=getattr(
+                    dicom_data, "ManufacturerModelName", None
+                ),
+                rows=getattr(dicom_data, "Rows", None),
+                columns=getattr(dicom_data, "Columns", None),
+                pixel_spacing=pixel_spacing,
+                bits_allocated=getattr(dicom_data, "BitsAllocated", None),
+                bits_stored=getattr(dicom_data, "BitsStored", None),
+                photometric_interpretation=getattr(
+                    dicom_data, "PhotometricInterpretation", None
+                ),
+                acquisition_date=getattr(dicom_data, "AcquisitionDate", None),
+                acquisition_time=getattr(dicom_data, "AcquisitionTime", None),
+                institution_name=getattr(dicom_data, "InstitutionName", None),
+                referring_physician_name=(
+                    str(getattr(dicom_data, "ReferringPhysicianName", None))
+                    if hasattr(dicom_data, "ReferringPhysicianName")
+                    else None
+                ),
             )
-            return temp_path, info
+
+            return metadata
 
         except Exception as e:
-            logger.error(f"Preprocessing failed, using original: {e}")
-            return image_path, info
+            logger.error(f"Failed to parse DICOM metadata: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse DICOM file: {str(e)}"
+            )
 
-    def _auto_crop_xray(
-        self, img: np.ndarray
-    ) -> Tuple[np.ndarray, Optional[list]]:
+    def convert_dicom_to_image(
+        self, dicom_file_path: str
+    ) -> Tuple[str, ImageInfo]:
         """
-        Detect the dark rectangular X-ray film within a real-world photo.
+        Convert DICOM file to a standard image format for inference.
 
-        Strategy:
-        - Convert to grayscale
-        - Adaptive threshold to isolate the dark X-ray region
-        - Find the largest contour that meets area constraints
-        - Crop to the bounding rect of that contour with padding
+        Args:
+            dicom_file_path: Path to the DICOM file
 
         Returns:
-            (cropped_image, [x, y, w, h]) or (original_image, None) if
-            no film region detected.
+            Tuple of (converted_image_path, image_info)
         """
-        # Preserve full radiograph frame so tooth crowns, enamel, and cavities
-        # are never clipped or lost.
-        return img, None
+        try:
+            dicom_data = pydicom.dcmread(dicom_file_path)
 
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # Apply modality LUT if present
+            if (
+                hasattr(dicom_data, "ModalityLUTSequence")
+                and dicom_data.ModalityLUTSequence
+            ):
+                try:
+                    from pydicom.pixel_data_handlers.util import apply_modality_lut
+                    pixel_array = apply_modality_lut(dicom_data.pixel_array, dicom_data)
+                except Exception as e:
+                    logger.warning(f"Failed to apply modality LUT: {e}")
+                    pixel_array = dicom_data.pixel_array
+            else:
+                pixel_array = dicom_data.pixel_array
 
-        # Use Otsu's threshold to separate dark X-ray from lighter background
-        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            # Apply VOI LUT if present (windowing)
+            if hasattr(dicom_data, "VOILUTSequence") and dicom_data.VOILUTSequence:
+                try:
+                    from pydicom.pixel_data_handlers.util import apply_voi_lut
+                    pixel_array = apply_voi_lut(pixel_array, dicom_data)
+                except Exception as e:
+                    logger.warning(f"Failed to apply VOI LUT: {e}")
+            elif hasattr(dicom_data, "WindowCenter") and hasattr(
+                dicom_data, "WindowWidth"
+            ):
+                try:
+                    window_center = float(
+                        dicom_data.WindowCenter[0]
+                        if isinstance(dicom_data.WindowCenter, list)
+                        else dicom_data.WindowCenter
+                    )
+                    window_width = float(
+                        dicom_data.WindowWidth[0]
+                        if isinstance(dicom_data.WindowWidth, list)
+                        else dicom_data.WindowWidth
+                    )
+                    pixel_array = np.clip(
+                        (pixel_array - (window_center - window_width / 2))
+                        / window_width
+                        * 255,
+                        0,
+                        255,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to apply windowing: {e}")
 
-        # Morphological close to fill small holes within the film
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
-        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            # Handle photometric interpretation
+            if hasattr(dicom_data, "PhotometricInterpretation"):
+                if dicom_data.PhotometricInterpretation == "MONOCHROME1":
+                    pixel_array = pixel_array.max() - pixel_array
 
-        # Also try using the inverted approach for images where
-        # X-ray is brighter than the background
-        contours_inv, _ = cv2.findContours(
-            binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+            # Normalize pixel values to 0-255
+            if pixel_array.dtype != np.uint8:
+                min_val = pixel_array.min()
+                max_val = pixel_array.max()
+                if max_val > min_val:
+                    pixel_array = (
+                        (pixel_array - min_val) / (max_val - min_val) * 255
+                    ).astype(np.uint8)
+                else:
+                    pixel_array = np.full(pixel_array.shape, 128, dtype=np.uint8)
 
-        # Also check the non-inverted binary for edge cases
-        binary_normal = cv2.bitwise_not(binary)
-        contours_norm, _ = cv2.findContours(
-            binary_normal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+            # Convert to RGB
+            if len(pixel_array.shape) == 2:
+                rgb_array = np.stack([pixel_array] * 3, axis=-1)
+            elif len(pixel_array.shape) == 3:
+                if pixel_array.shape[2] == 1:
+                    rgb_array = np.repeat(pixel_array, 3, axis=2)
+                elif pixel_array.shape[2] == 3:
+                    rgb_array = pixel_array
+                else:
+                    if pixel_array.shape[2] >= 3:
+                        rgb_array = pixel_array[:, :, :3]
+                    else:
+                        rgb_array = np.stack([pixel_array[:, :, 0]] * 3, axis=-1)
+            else:
+                raise ValueError(f"Unsupported pixel array shape: {pixel_array.shape}")
 
-        # Combine and find the best candidate
-        all_contours = list(contours_inv) + list(contours_norm)
+            # Save as temporary JPEG
+            image = Image.fromarray(rgb_array.astype(np.uint8))
+            temp_image_fd, temp_image_path = tempfile.mkstemp(suffix=".jpg")
+            os.close(temp_image_fd)
+            image.save(temp_image_path, "JPEG", quality=95)
 
-        best_contour = None
-        best_score = 0
-
-        for contour in all_contours:
-            area = cv2.contourArea(contour)
-            area_frac = area / total_area
-
-            # Must be a significant region but not the entire image
-            if area_frac < self.MIN_XRAY_AREA_FRACTION:
-                continue
-            if area_frac > self.MAX_XRAY_AREA_FRACTION:
-                continue
-
-            # Prefer contours that look rectangular (X-ray films are rectangular)
-            _, _, cw, ch = cv2.boundingRect(contour)
-            bounding_area = cw * ch
-            bounding_frac = bounding_area / total_area if total_area > 0 else 0
-            # Skip "crops" that are basically the whole photo (hands, window, walls)
-            if bounding_frac > self.MAX_XRAY_AREA_FRACTION:
-                continue
-
-            rectangularity = area / bounding_area if bounding_area > 0 else 0
-
-            # Prefer compact film-like rectangles over tall full-frame blobs
-            aspect = max(cw, ch) / max(min(cw, ch), 1)
-            aspect_penalty = 1.0 if aspect <= 2.2 else 0.4
-
-            # Score: reward decent size and rectangular shape
-            score = area_frac * rectangularity * aspect_penalty
-            if score > best_score:
-                best_score = score
-                best_contour = contour
-
-        if best_contour is None:
-            logger.info("No distinct X-ray film region detected; using full image")
-            return img, None
-
-        # Get bounding rectangle with padding
-        bx, by, bw, bh = cv2.boundingRect(best_contour)
-
-        pad_x = int(bw * self.CROP_PADDING)
-        pad_y = int(bh * self.CROP_PADDING)
-
-        x1 = max(0, bx - pad_x)
-        y1 = max(0, by - pad_y)
-        x2 = min(w, bx + bw + pad_x)
-        y2 = min(h, by + bh + pad_y)
-
-        cropped = img[y1:y2, x1:x2]
-
-        # Sanity check: cropped region must be reasonably sized
-        if cropped.shape[0] < 50 or cropped.shape[1] < 50:
-            logger.warning("Cropped region too small; using full image")
-            return img, None
-
-        return cropped, [x1, y1, x2 - x1, y2 - y1]
-
-    def _apply_clahe(self, img: np.ndarray) -> np.ndarray:
-        """
-        Apply CLAHE (Contrast-Limited Adaptive Histogram Equalization)
-        to improve X-ray contrast for better model detection.
-
-        Works on the luminance channel so color information (if any) is
-        preserved.
-        """
-        if len(img.shape) == 2:
-            # Already grayscale
-            clahe = cv2.createCLAHE(
-                clipLimit=self.CLAHE_CLIP_LIMIT,
-                tileGridSize=self.CLAHE_TILE_GRID,
+            image_info = ImageInfo(
+                original_shape=list(dicom_data.pixel_array.shape),
+                converted_format="JPEG",
+                converted_size=list(image.size),
+                original_dtype=str(dicom_data.pixel_array.dtype),
+                pixel_array_min=float(dicom_data.pixel_array.min()),
+                pixel_array_max=float(dicom_data.pixel_array.max()),
+                photometric_interpretation=getattr(
+                    dicom_data, "PhotometricInterpretation", None
+                ),
+                transfer_syntax=(
+                    str(dicom_data.file_meta.TransferSyntaxUID)
+                    if hasattr(dicom_data, "file_meta")
+                    and hasattr(dicom_data.file_meta, "TransferSyntaxUID")
+                    else None
+                ),
             )
-            return clahe.apply(img)
 
-        # Convert to LAB color space, apply CLAHE on L channel
-        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        l_channel, a_channel, b_channel = cv2.split(lab)
+            return temp_image_path, image_info
 
-        clahe = cv2.createCLAHE(
-            clipLimit=self.CLAHE_CLIP_LIMIT,
-            tileGridSize=self.CLAHE_TILE_GRID,
-        )
-        l_enhanced = clahe.apply(l_channel)
+        except Exception as e:
+            logger.error(f"Failed to convert DICOM to image: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to convert DICOM file to image: {str(e)}",
+            )
 
-        lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
-        result = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
 
-        return result
+# ─── Singleton ───────────────────────────────────────────────
+_preprocessing_service = None
 
 
 def get_preprocessing_service() -> PreprocessingService:
-    return PreprocessingService()
+    global _preprocessing_service
+    if _preprocessing_service is None:
+        _preprocessing_service = PreprocessingService()
+    return _preprocessing_service

@@ -1,1 +1,1 @@
-# This file makes the services directory a Python package
+# Chest X-Ray Classification Services

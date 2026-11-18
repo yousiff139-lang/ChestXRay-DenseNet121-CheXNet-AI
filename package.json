@@ -1,7 +1,7 @@
 {
-    "name": "dental-conditions-detection",
+    "name": "chest-xray-ai-classification",
     "version": "1.0.0",
-    "description": "AI-powered dental X-ray analysis platform",
+    "description": "Seminar 16: Chest X-Ray Disease Classification Using DenseNet-121 and ResNet-50",
     "scripts": {
         "dev": "concurrently --kill-others-on-fail --names \"BACKEND,FRONTEND\" --prefix-colors \"yellow.bold,cyan.bold\" --prefix \"[{name}]\" \"npm run dev:backend\" \"npm run dev:frontend\"",
         "dev:backend": "node scripts/start-backend.js",
@@ -9,14 +9,15 @@
         "start": "npm run dev",
         "install:all": "npm run install:backend && npm run install:frontend",
         "install:backend": "cd backend && uv sync",
-        "install:frontend": "cd frontend && pnpm install"
+        "install:frontend": "cd frontend && pnpm install",
+        "train": "cd backend && uv run python train/train_chest_xray.py",
+        "evaluate": "cd backend && uv run python train/evaluate.py"
     },
     "devDependencies": {
-        "concurrently": "^8.2.2"
-    },
-    "dependencies": {
-        "@splinetool/react-spline": "^4.1.0",
-        "@splinetool/runtime": "^1.12.6",
-        "framer-motion": "^12.23.25"
+        "@types/node": "^26.6.5",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "concurrently": "^8.2.2",
+        "typescript": "^7.0.2"
     }
 }

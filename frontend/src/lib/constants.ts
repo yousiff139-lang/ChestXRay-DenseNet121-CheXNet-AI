@@ -1,18 +1,17 @@
-// Application constants
+// Application constants for Chest X-Ray AI
+
 export const FILE_SIZE_LIMITS = {
-  MAX_SIZE: 10 * 1024 * 1024, // 10 MB
+  MAX_SIZE: 15 * 1024 * 1024, // 15 MB
 } as const;
 
 export const SUPPORTED_FILE_EXTENSIONS = {
-  "application/dicom": [".dcm", ".rvg"],
+  "application/dicom": [".dcm", ".dicom"],
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
 } as const;
 
-// Keep legacy name for backwards compatibility
 export const SUPPORTED_DICOM_EXTENSIONS = SUPPORTED_FILE_EXTENSIONS;
 
-// Utility function for consistent file size formatting
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
@@ -20,107 +19,107 @@ export const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
-// Color palette for different detection classes
-export const DETECTION_COLORS = [
-  "#ef4444", // red - Cavity
-  "#f97316", // orange - Periapical Lesion
-  "#3b82f6", // blue - Other Condition
-  "#22c55e", // green
-  "#eab308", // yellow
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-];
 
-export function getDetectionColor(
-  classId?: number | string | null,
-  className?: string
-): string {
-  const check = (
-    typeof classId === "string" ? classId : className || ""
-  ).toLowerCase();
+export const CHEST_XRAY_CLASSES = [
+  "Atelectasis",
+  "Cardiomegaly",
+  "Consolidation",
+  "Edema",
+  "Effusion",
+  "Emphysema",
+  "Fibrosis",
+  "Hernia",
+  "Infiltration",
+  "Mass",
+  "Nodule",
+  "Pleural_Thickening",
+  "Pneumonia",
+  "Pneumothorax",
+] as const;
 
-  if (check.includes("cavity") || check.includes("caries")) {
-    return "#ef4444"; // Vivid Red for Cavity
+export const DISEASE_INFO: Record<
+  string,
+  {
+    description: string;
+    clinicalConcern: "High" | "Moderate" | "Low";
+    badgeColor: string;
   }
-  if (check.includes("periapical") || check.includes("pa")) {
-    return "#f97316"; // Bright Orange for Periapical Lesion
-  }
-  if (check.includes("impacted")) {
-    return "#8b5cf6"; // Purple/Violet for Impacted / Unerupted Tooth
-  }
-
-  if (typeof classId === "number" && !isNaN(classId)) {
-    if (classId === 0) return "#ef4444";
-    if (classId === 1) return "#f97316";
-    if (classId === 2) return "#8b5cf6";
-    return DETECTION_COLORS[Math.abs(classId) % DETECTION_COLORS.length];
-  }
-
-  return "#ef4444";
-}
-
-export const DETECTION_LABELS: Record<number, string> = {
-  0: "Cavity",
-  1: "Periapical Lesion",
-  2: "Impacted Tooth",
+> = {
+  Atelectasis: {
+    description: "Partial or complete collapse of the lung or lung lobe.",
+    clinicalConcern: "Moderate",
+    badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  },
+  Cardiomegaly: {
+    description: "Enlarged heart with cardiothoracic ratio exceeding 0.50.",
+    clinicalConcern: "High",
+    badgeColor: "bg-red-500/20 text-red-300 border-red-500/30",
+  },
+  Consolidation: {
+    description: "Alveolar spaces filled with fluid/exudate replacing air.",
+    clinicalConcern: "High",
+    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+  },
+  Edema: {
+    description: "Accumulation of fluid in pulmonary interstitium/alveoli.",
+    clinicalConcern: "High",
+    badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  },
+  Effusion: {
+    description: "Fluid collection in the pleural space blunting costophrenic angles.",
+    clinicalConcern: "High",
+    badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  },
+  Emphysema: {
+    description: "Hyperinflation with flattened diaphragms and loss of lung parenchyma.",
+    clinicalConcern: "Moderate",
+    badgeColor: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  },
+  Fibrosis: {
+    description: "Reticular lung opacities representing interstitial scarring.",
+    clinicalConcern: "Moderate",
+    badgeColor: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  },
+  Hernia: {
+    description: "Diaphragmatic herniation of abdominal contents into the thorax.",
+    clinicalConcern: "High",
+    badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  },
+  Infiltration: {
+    description: "Ill-defined parenchymal opacification from inflammation or fluid.",
+    clinicalConcern: "Moderate",
+    badgeColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+  },
+  Mass: {
+    description: "Solitary pulmonary lesion greater than 3 cm in diameter.",
+    clinicalConcern: "High",
+    badgeColor: "bg-red-600/20 text-red-400 border-red-600/30",
+  },
+  Nodule: {
+    description: "Discrete rounded pulmonary opacity measuring up to 3 cm.",
+    clinicalConcern: "Moderate",
+    badgeColor: "bg-amber-600/20 text-amber-400 border-amber-600/30",
+  },
+  Pleural_Thickening: {
+    description: "Fibrotic or calcified pleural margin thickening.",
+    clinicalConcern: "Low",
+    badgeColor: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+  },
+  Pneumonia: {
+    description: "Infectious consolidation or patchy parenchymal opacities.",
+    clinicalConcern: "High",
+    badgeColor: "bg-rose-600/20 text-rose-300 border-rose-600/30",
+  },
+  Pneumothorax: {
+    description: "Free air in the pleural cavity causing partial lung collapse.",
+    clinicalConcern: "High",
+    badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  },
 };
 
-export function getDetectionLabel(
-  classId?: number | string | null,
-  fallback?: string
-): string {
-  if (typeof classId === "string" && classId) {
-    return classId;
-  }
-  if (typeof classId === "number" && !isNaN(classId) && DETECTION_LABELS[classId]) {
-    return DETECTION_LABELS[classId];
-  }
-  return fallback || "Cavity";
+export function getDiseaseSeverityColor(probability: number): string {
+  if (probability >= 0.7) return "text-red-400 bg-red-500/10 border-red-500/30";
+  if (probability >= 0.5) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+  if (probability >= 0.25) return "text-blue-400 bg-blue-500/10 border-blue-500/30";
+  return "text-slate-400 bg-slate-500/10 border-slate-500/20";
 }
-
-/**
- * Determine an approximate anatomical location based on the detection's
- * relative position within the X-ray image.
- */
-export function getAnatomicalLocation(
-  relativeX: number,
-  relativeY: number,
-  detectedClass: string
-): string {
-  // Vertical position
-  let verticalZone: string;
-  if (relativeY < 0.35) {
-    verticalZone = "Crown region";
-  } else if (relativeY < 0.65) {
-    verticalZone = "Mid-root region";
-  } else {
-    verticalZone = "Apex region";
-  }
-
-  // Horizontal position
-  let horizontalZone: string;
-  if (relativeX < 0.33) {
-    horizontalZone = "Left";
-  } else if (relativeX < 0.66) {
-    horizontalZone = "Central";
-  } else {
-    horizontalZone = "Right";
-  }
-
-  // Combine with class-specific location terms
-  const cls = (detectedClass || "").toLowerCase();
-  if (cls.includes("periapical")) {
-    return `${horizontalZone} — Periapical (root apex)`;
-  } else if (cls.includes("cavity") || cls.includes("caries")) {
-    if (relativeY < 0.4) {
-      return `${horizontalZone} — Coronal (tooth crown)`;
-    } else {
-      return `${horizontalZone} — Cervical (tooth neck)`;
-    }
-  }
-
-  return `${horizontalZone} — ${verticalZone}`;
-}
-
-

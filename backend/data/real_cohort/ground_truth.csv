@@ -1,0 +1,21 @@
+Image Index,Finding Labels,Clinical Diagnosis,Patient ID,View,Notes
+case_01_normal.jpg,No Finding,No Finding,38,PA,"Female, 61 years old, smoker. In November 2019 fever cough and asthenia treated with Ceftriaxone, subsequently with Amox"
+case_02_normal.jpg,No Finding,No Finding,173,PA,"Three days cough, myalgias and fever. No recent overseas travel. Only sick contact was her husband who was recently hosp"
+case_03_normal.jpg,No Finding,No Finding,210,PA,Patient 1 – CXR: Normal
+case_04_normal.jpg,No Finding,No Finding,211,PA,Patient 2 - CXR: Normal
+case_05_normal.jpg,No Finding,No Finding,214,PA,Patient 5 - CXR: Normal
+case_06_normal.jpg,No Finding,No Finding,251,PA,nan
+case_07_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,2,PA,"On January 22, 2020, a 65-year-old man with a history of hypertension, type 2 diabetes, coronary heart disease for which"
+case_08_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,2,PA,"On January 22, 2020, a 65-year-old man with a history of hypertension, type 2 diabetes, coronary heart disease for which"
+case_09_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,2,PA,"On January 22, 2020, a 65-year-old man with a history of hypertension, type 2 diabetes, coronary heart disease for which"
+case_10_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,2,PA,"On January 22, 2020, a 65-year-old man with a history of hypertension, type 2 diabetes, coronary heart disease for which"
+case_11_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,4,PA,diffuse infiltrates in the bilateral lower lungs
+case_12_pathology.jpg,Pneumonia|Infiltration,Pneumonia/Viral/COVID-19,4,PA,progressive diffuse interstitial opacities and consolidation in the bilateral parahilar areas and lower lung fields
+case_13_pathology.jpg,Pneumonia|Consolidation,Pneumonia/Bacterial/Streptococcus,30,AP,Extensive consolidation and air bronchograms with loss of the right hemidiaphragm in keeping with right lower lobe pneum
+case_14_pathology.jpg,Pneumonia|Consolidation,Pneumonia/Bacterial/Streptococcus,31,AP,When patient presented to ED there was wide spread opacity across patient right lung field especially on lower lung fiel
+case_15_pathology.jpg,Pneumonia|Consolidation,Pneumonia/Bacterial/Streptococcus,31,AP,When patient presented to ED there was wide spread opacity across patient right lung field especially on lower lung fiel
+case_16_pathology.jpg,Pneumonia|Consolidation,Pneumonia/Bacterial/Streptococcus,31,PA,When patient presented to ED there was wide spread opacity across patient right lung field especially on lower lung fiel
+case_17_pathology.jpg,Pneumonia,Pneumonia,5,PA,Severe ARDS. Person is intubated with an OG in place.
+case_18_pathology.jpg,Pneumonia,Pneumonia,26,AP,"Admitted to ICU with necrotizing fasciitis, septic shock and acute renal failure. Progressive respiratory failure requir"
+case_19_pathology.jpg,Pneumonia,Pneumonia,272,PA,"A 55-year-old female patient with a 60 pack-per-year smoking history, presented with a two-month history of dry cough an"
+case_20_pathology.jpg,Pneumonia,Pneumonia,272,PA,"A 55-year-old female patient with a 60 pack-per-year smoking history, presented with a two-month history of dry cough an"

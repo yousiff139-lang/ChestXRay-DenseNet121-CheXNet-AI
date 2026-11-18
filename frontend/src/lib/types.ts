@@ -1,43 +1,46 @@
-export interface DentalSegment {
-  id: string;
-  name: string;
-  dental_code?: string;
-  description?: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  findings_count?: number;
-  metrics?: {
-    mean_density?: number;
-    radiolucency_activity?: number;
-    radiopaque_activity?: number;
-    edge_gradient?: number;
-  };
+export interface DiseaseClassification {
+  disease_name: string;
+  probability: number;
+  raw_probability?: number | null;
+  threshold?: number;
+  prevalence?: number | null;
+  state?: "Positive" | "Uncertain" | "Negative";
+  is_positive: boolean;
 }
 
-export interface Detection {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  confidence: number;
-  class: string;
-  class_id: number;
-  detection_id: string;
-  gemini_verified?: boolean;
-  gemini_reasoning?: string;
-  location_label?: string;
-  segment?: string;
-  stage1_detected?: boolean;
-  stage2_rechecked?: boolean;
-  stage2_notes?: string;
-  ip_verified?: boolean;
-  ip_score?: number;
-  ip_metrics?: {
-    contrast_ratio?: number;
-    blackhat_signal?: number;
-    gradient_edge?: number;
+export interface ClassificationResponse {
+  predictions: DiseaseClassification[];
+  positive_findings: DiseaseClassification[];
+  model_used: string;
+  inference_time_ms: number;
+  model_inference_ms?: number | null;
+  end_to_end_ms?: number | null;
+  gradcam_overlay_base64?: string | null;
+  gradcam_class_name?: string | null;
+  image_width?: number;
+  image_height?: number;
+  confidence_threshold?: number;
+  disclaimer?: string;
+}
+
+export interface ModelComparisonResponse {
+  densenet_results: ClassificationResponse;
+  resnet_results: ClassificationResponse;
+  comparison_summary?: {
+    densenet_inference_ms: number;
+    resnet_inference_ms: number;
+    densenet_positive_count: number;
+    resnet_positive_count: number;
+    agreement: Array<{
+      disease: string;
+      densenet_prob: number;
+      resnet_prob: number;
+    }>;
+    disagreement: Array<{
+      disease: string;
+      densenet_prob: number;
+      resnet_prob: number;
+    }>;
   };
 }
 
@@ -76,66 +79,135 @@ export interface ImageInfo {
   transfer_syntax?: string;
 }
 
-export interface DicomDetectionResponse {
-  predictions: Detection[];
-  metadata: DicomMetadata | null;
-  image_info: ImageInfo | null;
+export interface DicomClassificationResponse {
+  predictions: DiseaseClassification[];
+  positive_findings: DiseaseClassification[];
+  metadata: DicomMetadata;
+  image_info: ImageInfo;
+  model_used: string;
+  inference_time_ms: number;
+  model_inference_ms?: number | null;
+  end_to_end_ms?: number | null;
+  gradcam_overlay_base64?: string | null;
+  gradcam_class_name?: string | null;
   image_width?: number;
   image_height?: number;
-  scan_mode?: string;
-  is_panoramic?: boolean;
-  segments?: DentalSegment[];
-  cv_overlay_url?: string;
-  is_healthy?: boolean;
-  radiologist_assessment?: string;
+  confidence_threshold?: number;
+  disclaimer?: string;
 }
 
-export interface DicomDetectionResult extends DicomDetectionResponse {
-  fileId: string;
-  fileName: string;
-}
-
-// Type for the converted DICOM data
-export interface ConvertedDicomData {
-  id: string;
-  dataUrl: string;
-  width: number;
-  height: number;
-  originalFile: File;
-  fileName: string;
-  fileSize: number;
-}
-
-// Types for individual file detection states
-export interface FileDetectionState {
-  fileId: string;
-  fileName: string;
-  status: "pending" | "loading" | "success" | "error";
-  result?: DicomDetectionResult;
-  error?: Error;
-  diagnosticReport?: DiagnosticReport;
-}
-
-export interface DetectionProgress {
-  files: FileDetectionState[];
-  isAllComplete: boolean;
-  hasAnyResults: boolean;
-  hasAnyErrors: boolean;
-}
-
-// Diagnostic Report Types
-export interface DiagnosticReport {
-  report: string;
-  summary: string;
+export interface DiagnosticFinding {
+  finding_id: string;
+  disease_name: string;
+  confidence: number;
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
   recommendations: string[];
-  severity_level: "low" | "moderate" | "high";
-  generated_at: string;
 }
 
-export type DiagnosticReportRequest = DicomDetectionResponse;
+export interface DiagnosticReport {
+  report_id: string;
+  generated_at: string;
+  patient_info?: {
+    patient_id?: string;
+    patient_name?: string;
+    age?: number;
+    gender?: string;
+  };
+  clinical_summary: string;
+  findings: DiagnosticFinding[];
+  impression: string;
+  recommendations: string[];
+  disclaimer: string;
+  urgency_level: "low" | "medium" | "high" | "urgent";
+}
 
 export interface DiagnosticReportResponse {
   diagnostic_report: DiagnosticReport;
-  detections_used: Detection[];
-  metadata?: DicomMetadata;
+  classifications_used: DiseaseClassification[];
+  metadata?: DicomMetadata | null;
+}
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rel_x: number;
+  rel_y: number;
+  rel_width: number;
+  rel_height: number;
+}
+
+export interface ThoracicDetection {
+  id: string;
+  class_name: string;
+  confidence: number;
+  bbox: BoundingBox;
+  verified: boolean;
+  severity: "mild" | "moderate" | "severe";
+  color: string;
+  description?: string;
+}
+
+export interface CurativeProtocol {
+  pathology: string;
+  clinical_action: string;
+  recommended_medications: string[];
+  procedural_intervention?: string;
+  follow_up_timeline: string;
+}
+
+export interface UnifiedDiagnosisResponse {
+  detections: ThoracicDetection[];
+  total_detections: number;
+  predictions: DiseaseClassification[];
+  positive_findings: DiseaseClassification[];
+  resnet_predictions?: DiseaseClassification[] | null;
+  gradcam_overlay_base64?: string | null;
+  annotated_overlay_base64?: string | null;
+  gemini_audit_summary?: string | null;
+  diagnostic_report?: {
+    report: string;
+    summary: string;
+    recommendations: string[];
+    severity_level: string;
+    generated_at?: string;
+  } | null;
+  curative_protocols: CurativeProtocol[];
+  image_width: number;
+  image_height: number;
+  inference_time_ms: number;
+  model_inference_ms: number;
+  end_to_end_ms: number;
+  metadata?: DicomMetadata | null;
+  disclaimer: string;
+}
+
+export interface BenchmarkMetrics {
+  dataset: string;
+  classes: string[];
+  metrics_comparison: {
+    densenet_121: {
+      architecture: string;
+      mean_roc_auc: number;
+      mean_ap: number;
+      avg_sensitivity: number;
+      avg_specificity: number;
+      inference_speed_fps: number;
+      parameters_million: number;
+      key_strength: string;
+    };
+    resnet_50: {
+      architecture: string;
+      mean_roc_auc: number;
+      mean_ap: number;
+      avg_sensitivity: number;
+      avg_specificity: number;
+      inference_speed_fps: number;
+      parameters_million: number;
+      key_strength: string;
+    };
+  };
+  per_class_auc: Record<string, { densenet: number; resnet: number }>;
 }

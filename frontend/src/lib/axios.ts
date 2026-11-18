@@ -9,14 +9,13 @@ const apiClient = axios.create({
   // timeout: 30000, // 30 seconds
 });
 
-// Add request interceptor for authentication if needed
+// Add request interceptor for authentication and path normalization
 apiClient.interceptors.request.use(
   (config) => {
-    // You can add auth token here if needed
-    // const token = getToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Normalize path to prevent duplicate /api/v1 if baseURL already includes it
+    if (config.baseURL?.endsWith("/api/v1") && config.url?.startsWith("/api/v1")) {
+      config.url = config.url.replace(/^\/api\/v1/, "");
+    }
     return config;
   },
   (error) => Promise.reject(error)

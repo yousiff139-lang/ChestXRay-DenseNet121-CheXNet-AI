@@ -19,9 +19,9 @@ import uvicorn
 from .api.routes import router as api_router
 from .core.config import get_settings
 from .core.exceptions import (
-    DentalDetectionException,
+    ChestXRayException,
     global_exception_handler,
-    dental_detection_exception_handler,
+    chest_xray_exception_handler,
 )
 
 # Configure logging
@@ -37,8 +37,13 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Dobbe Dental Detection API",
-        description="AI-powered dental condition detection API for cavities and periapical lesions",
+        title="Chest X-Ray Disease Classification API",
+        description=(
+            "AI-powered chest X-ray classification system using DenseNet-121 and ResNet-50. "
+            "Identifies 14 thoracic pathologies from the NIH ChestX-ray14 dataset using "
+            "multi-label classification with transfer learning. Includes Grad-CAM visualization "
+            "for disease-relevant region highlighting."
+        ),
         version="1.0.0",
         debug=settings.debug,
     )
@@ -46,13 +51,19 @@ def create_app() -> FastAPI:
     # Exception handlers
     app.add_exception_handler(Exception, global_exception_handler)
     app.add_exception_handler(
-        DentalDetectionException, dental_detection_exception_handler
+        ChestXRayException, chest_xray_exception_handler
     )
 
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ],
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -65,9 +76,11 @@ def create_app() -> FastAPI:
     async def root():
         """Root endpoint"""
         return {
-            "message": "Welcome to Dobbe Dental Detection API",
+            "message": "Welcome to Chest X-Ray Disease Classification API",
             "version": "1.0.0",
             "docs": "/docs",
+            "models": ["DenseNet-121", "ResNet-50"],
+            "dataset": "NIH ChestX-ray14 (14 pathologies)",
         }
 
     return app

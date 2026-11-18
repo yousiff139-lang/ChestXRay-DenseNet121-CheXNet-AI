@@ -2,142 +2,65 @@ import uuid
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from .classification import DiseaseClassification, DicomMetadata, ImageInfo, DiagnosticReport
 
 
-class Detection(BaseModel):
-    x: float
-    y: float
-    width: float
-    height: float
-    confidence: float
-    class_: str = Field(alias="class")
-    class_id: int = 2
-    detection_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    gemini_verified: Optional[bool] = None
-    gemini_reasoning: Optional[str] = None
-    location_label: Optional[str] = None
-    segment: Optional[str] = None
-    stage1_detected: Optional[bool] = True
-    stage2_rechecked: Optional[bool] = None
-    stage2_notes: Optional[str] = None
-    ip_verified: Optional[bool] = None
-    ip_score: Optional[float] = None
-    ip_metrics: Optional[Dict[str, Any]] = None
-
-    model_config = {"extra": "allow", "populate_by_name": True}
+class BoundingBox(BaseModel):
+    """Bounding box in absolute and relative coordinates for HTML5 Canvas."""
+    x: float = Field(description="Top-left x in pixels")
+    y: float = Field(description="Top-left y in pixels")
+    width: float = Field(description="Box width in pixels")
+    height: float = Field(description="Box height in pixels")
+    # Normalized [0, 1] for responsive canvas overlays
+    rel_x: float = Field(default=0.0, description="Normalized x (0.0 - 1.0)")
+    rel_y: float = Field(default=0.0, description="Normalized y (0.0 - 1.0)")
+    rel_width: float = Field(default=0.0, description="Normalized width (0.0 - 1.0)")
+    rel_height: float = Field(default=0.0, description="Normalized height (0.0 - 1.0)")
 
 
-class DetectionResponse(BaseModel):
-    predictions: List[Detection]
-    image_width: Optional[int] = None
-    image_height: Optional[int] = None
-    scan_mode: Optional[str] = "Multi-Scanner (YOLO 1 + YOLO 2 + CV Overlay)"
-    is_panoramic: Optional[bool] = False
-    is_healthy: Optional[bool] = None
-    radiologist_assessment: Optional[str] = None
-    segments: Optional[List[Dict[str, Any]]] = None
-    cv_overlay_url: Optional[str] = None
+class ThoracicDetection(BaseModel):
+    """Single pathology localized with bounding box."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    class_name: str = Field(description="Detected pathology (e.g. Nodule, Consolidation, Effusion)")
+    confidence: float = Field(description="Confidence score [0, 1]", ge=0.0, le=1.0)
+    bbox: BoundingBox
+    verified: bool = Field(default=True, description="Whether verified by Gemini VLM gatekeeper")
+    severity: str = Field(default="moderate", description="Estimated severity: mild, moderate, severe")
+    color: str = Field(default="#ef4444", description="Hex color for bounding box UI rendering")
+    description: Optional[str] = Field(default=None, description="Radiological description of finding")
 
 
-class DicomMetadata(BaseModel):
-    """DICOM metadata fields"""
-
-    patient_id: Optional[str] = None
-    patient_name: Optional[str] = None
-    patient_birth_date: Optional[str] = None
-    patient_sex: Optional[str] = None
-    study_date: Optional[str] = None
-    study_time: Optional[str] = None
-    study_description: Optional[str] = None
-    series_description: Optional[str] = None
-    modality: Optional[str] = None
-    manufacturer: Optional[str] = None
-    manufacturer_model_name: Optional[str] = None
-    rows: Optional[int] = None
-    columns: Optional[int] = None
-    pixel_spacing: Optional[List[float]] = None
-    bits_allocated: Optional[int] = None
-    bits_stored: Optional[int] = None
-    photometric_interpretation: Optional[str] = None
-    acquisition_date: Optional[str] = None
-    acquisition_time: Optional[str] = None
-    institution_name: Optional[str] = None
-    referring_physician_name: Optional[str] = None
+class CurativeProtocol(BaseModel):
+    """Specific curative protocol and medical treatment recommendation."""
+    pathology: str = Field(description="Name of detected thoracic condition")
+    clinical_action: str = Field(description="Primary clinical intervention required")
+    recommended_medications: List[str] = Field(default_factory=list, description="Common medical therapies / drug classes")
+    procedural_intervention: Optional[str] = Field(default=None, description="Invasive or imaging procedure (e.g., thoracentesis, chest tube, CT chest)")
+    follow_up_timeline: str = Field(default="Repeat chest X-ray in 4-6 weeks", description="Recommended monitoring interval")
 
 
-class ImageInfo(BaseModel):
-    """Type-safe model for image conversion information"""
-
-    original_shape: List[int] = Field(description="Original DICOM image dimensions")
-    converted_format: str = Field(
-        description="Format of the converted image (e.g., 'JPEG')"
-    )
-    converted_size: List[int] = Field(
-        description="Size of converted image [width, height]"
-    )
-    original_dtype: str = Field(description="Original pixel data type")
-    pixel_array_min: float = Field(description="Minimum pixel value in original image")
-    pixel_array_max: float = Field(description="Maximum pixel value in original image")
-    photometric_interpretation: Optional[str] = Field(
-        None, description="DICOM photometric interpretation"
-    )
-    transfer_syntax: Optional[str] = Field(
-        None, description="DICOM transfer syntax UID"
-    )
-
-
-class DicomDetectionResponse(BaseModel):
-    """Response model for DICOM file detection"""
-
-    predictions: List[Detection]
-    metadata: DicomMetadata
-    image_info: ImageInfo
-    image_width: Optional[int] = None
-    image_height: Optional[int] = None
-    scan_mode: Optional[str] = "Multi-Scanner (YOLO 1 + YOLO 2 + CV Overlay)"
-    is_panoramic: Optional[bool] = False
-    is_healthy: Optional[bool] = None
-    radiologist_assessment: Optional[str] = None
-    segments: Optional[List[Dict[str, Any]]] = None
-    cv_overlay_url: Optional[str] = None
-
-
-class ErrorResponse(BaseModel):
-    detail: str
-    error_code: str = "VALIDATION_ERROR"
-
-
-class DiagnosticReport(BaseModel):
-    """Generated diagnostic report based on dental detections"""
-
-    report: str = Field(description="The generated diagnostic report text")
-    summary: str = Field(description="Brief summary of findings")
-    recommendations: List[str] = Field(description="List of treatment recommendations")
-    severity_level: str = Field(
-        description="Overall severity assessment (low, moderate, high)"
-    )
-    generated_at: datetime = Field(default_factory=datetime.now)
-
-
-class DiagnosticReportResponse(BaseModel):
-    """Response model for diagnostic report generation"""
-
-    diagnostic_report: DiagnosticReport
-    detections_used: List[Detection] = Field(
-        description="Detections that were analyzed"
-    )
-    metadata: Optional[DicomMetadata] = Field(
-        None, description="DICOM metadata if available"
-    )
-
-
-class DiagnosticReportRequest(BaseModel):
-    """Request model for diagnostic report generation"""
-
-    predictions: List[Detection] = Field(description="Detection results to analyze")
-    metadata: Optional[DicomMetadata] = Field(
-        None, description="DICOM metadata if available"
-    )
-    image_info: Optional[ImageInfo] = Field(
-        None, description="Image technical information"
-    )
+class UnifiedDiagnosisResponse(BaseModel):
+    """Comprehensive diagnosis combining DenseNet-121, ResNet-50, YOLO Object Detection, and Gemini VLM."""
+    detections: List[ThoracicDetection] = Field(default_factory=list, description="YOLO localized bounding boxes")
+    total_detections: int = 0
+    predictions: List[DiseaseClassification] = Field(description="DenseNet-121 multi-label classifications")
+    positive_findings: List[DiseaseClassification] = Field(default_factory=list, description="Positive findings from DenseNet-121")
+    resnet_predictions: Optional[List[DiseaseClassification]] = Field(default=None, description="ResNet-50 comparative predictions")
+    
+    # Visualizations
+    gradcam_overlay_base64: Optional[str] = Field(default=None, description="DenseNet-121 Grad-CAM visual heatmap overlay")
+    annotated_overlay_base64: Optional[str] = Field(default=None, description="Image with YOLO bounding boxes burned in")
+    
+    # Gemini VLM Insights
+    gemini_audit_summary: Optional[str] = Field(default=None, description="Stage 0 global radiologist assessment")
+    diagnostic_report: Optional[DiagnosticReport] = Field(default=None, description="Stage 3 structured clinical report")
+    curative_protocols: List[CurativeProtocol] = Field(default_factory=list, description="Specific curative steps for detected conditions")
+    
+    # Metadata & Telemetry
+    image_width: int = 0
+    image_height: int = 0
+    inference_time_ms: float = 0.0
+    model_inference_ms: float = 0.0
+    end_to_end_ms: float = 0.0
+    metadata: Optional[DicomMetadata] = None
+    disclaimer: str = "Research prototype. Not for clinical diagnostic use."

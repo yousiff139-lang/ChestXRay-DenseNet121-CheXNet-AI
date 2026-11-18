@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import Provider from "@/components/provider";
-import { DeveloperProfiles } from "@/components/profile-card";
+import Provider from "../components/provider";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  weight: "variable",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Dental X-Ray AI Analysis",
-  description: "AI-powered dental X-ray analysis for cavity and periapical lesion detection",
+  title: "ChestXRay AI — Clinical Radiologist Workstation (DenseNet-121)",
+  description:
+    "Seminar 16: Chest X-ray disease classification system using pretrained DenseNet-121 and ResNet-50 baseline on NIH ChestX-ray14",
 };
 
 export default function RootLayout({
@@ -23,13 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${spaceGrotesk.variable} antialiased min-h-screen font-sans bg-background text-foreground`}
+        className={`${inter.variable} antialiased min-h-screen font-sans bg-slate-950 text-slate-100 selection:bg-blue-600/30 selection:text-white`}
         suppressHydrationWarning
       >
-        <Provider>
-          {children}
-          <DeveloperProfiles />
-        </Provider>
+        <Provider>{children}</Provider>
       </body>
     </html>
   );

@@ -2,21 +2,17 @@
 
 import dynamic from "next/dynamic";
 
-const DentalDashboard = dynamic(
-  () => import("@/components/dental-dashboard").then((mod) => mod.DentalDashboard),
+const ChestDashboard = dynamic(
+  () => import("../components/chest-dashboard").then((mod) => mod.ChestDashboard),
   {
     ssr: false,
     loading: () => (
-      <div
-        className="h-screen w-screen overflow-hidden relative bg-background flex items-center justify-center"
-        suppressHydrationWarning
-      >
-        <div
-          className="flex flex-col items-center gap-3 text-muted-foreground animate-pulse"
-          suppressHydrationWarning
-        >
-          <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <span className="text-xs font-medium tracking-wide">Loading Dental AI...</span>
+      <div className="min-h-screen w-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="w-10 h-10 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+          <span className="text-xs font-medium tracking-wide">
+            Loading ChestXRay AI (DenseNet-121)...
+          </span>
         </div>
       </div>
     ),
@@ -25,8 +21,8 @@ const DentalDashboard = dynamic(
 
 export default function Home() {
   return (
-    <main className="h-screen overflow-hidden relative bg-background" suppressHydrationWarning>
-      <DentalDashboard />
+    <main className="min-h-screen bg-slate-950" suppressHydrationWarning>
+      <ChestDashboard />
     </main>
   );
 }
