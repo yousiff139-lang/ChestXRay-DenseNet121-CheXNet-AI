@@ -388,6 +388,10 @@ cam = torch.clamp(cam, min=0.0)  # ReLU
 cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)  # Min-max normalization
 ```
 
+#### Empirical Grad-CAM Saliency Maps from Seminar 16 Training
+![DenseNet-121 Grad-CAM Visualizations](assets/images/seminar16_gradcam_visualizations.png)
+*Figure 3: Grad-CAM disease-relevant thoracic saliency maps generated from the final convolutional layer of DenseNet-121, highlighting localized pathologies for Atelectasis & Emphysema, Pleural Thickening, Infiltration & Effusion, Consolidation, and Cardiomegaly.*
+
 ---
 
 ### 3.7 YOLO Lesion Localization Harmonization
@@ -450,6 +454,16 @@ Empirical results from 30 fine-tuning epochs on balanced NIH ChestX-ray14 subset
 | **Clinical Sensitivity (Recall)**| **97.38%** | 96.12% | Lower risk of missed clinical diagnoses |
 | **Inference Latency** | **16.44 ms / image** | 18.25 ms / image | Real-time throughput (~60.8 FPS) |
 | **Parameter Efficiency** | **6.98 Million** | 23.53 Million | **70.3% fewer parameters**; reduced overfitting risk |
+
+### Training Convergence & Metric Curves (30 Epochs)
+
+![Training Convergence and Validation Metrics](assets/images/seminar16_loss_and_auc_curves.png)
+*Figure 1: Multi-label BCE loss convergence across 30 epochs, Validation Mean ROC-AUC (%), and Validation Mean Average Precision (mAP %) comparing DenseNet-121 (Proposed, in blue) against ResNet-50 (Baseline, in red).*
+
+### ROC Curves & Per-Class Clinical Sensitivity
+
+![Multi-Label ROC Curves and Clinical Sensitivity](assets/images/seminar16_roc_curves_and_sensitivity.png)
+*Figure 2: DenseNet-121 multi-label ROC curves (Mean ROC-AUC = 98.56%) across all 14 thoracic disease categories, and per-class clinical sensitivity comparison against the 95% clinical sensitivity benchmark.*
 
 ### Per-Class ROC-AUC Comparison Table
 
