@@ -84,7 +84,7 @@ export const XRayDropzone: React.FC<XRayDropzoneProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
-        className={`relative cursor-pointer border rounded-xl p-8 transition-colors flex flex-col items-center justify-center text-center ${
+        className={`cursor-pointer border-2 border-dashed rounded-xl p-8 transition-colors flex flex-col items-center justify-center text-center ${
           isDragging
             ? "border-blue-500 bg-blue-500/5"
             : disabled
@@ -101,15 +101,15 @@ export const XRayDropzone: React.FC<XRayDropzoneProps> = ({
           onChange={handleInputChange}
         />
 
-        <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mb-3 text-slate-300">
-          <Upload className="w-6 h-6 text-blue-400" />
+        <div className="w-11 h-11 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mb-3 text-slate-300">
+          <Upload className="w-5 h-5 text-blue-400" />
         </div>
 
         <h3 className="text-sm font-semibold text-slate-200 mb-1">
-          Select or Drop Frontal Chest Radiograph
+          Upload Frontal Chest Radiograph
         </h3>
-        <p className="text-xs text-slate-400 max-w-sm mb-4">
-          Upload DICOM or standard image formats for multi-label thoracic disease inference & Grad-CAM analysis
+        <p className="text-xs text-slate-400 max-w-sm mb-3">
+          Drag and drop a scan here, or click to browse files
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-400">
@@ -126,49 +126,46 @@ export const XRayDropzone: React.FC<XRayDropzoneProps> = ({
       </div>
 
       {/* Quick Test Samples */}
-      <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Verified Clinical Test Cohort (Real Patients)
-          </span>
-          <span className="text-[10px] text-slate-500">Board-Certified Ground Truth</span>
-        </div>
+      <div className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-800">
+        <span className="text-[11px] font-medium text-slate-400 block mb-2">
+          Or test with an example scan:
+        </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             type="button"
             disabled={disabled || !!loadingSample}
             onClick={() => loadSample("/samples/real_normal_case.jpg", "real_patient_normal.jpg")}
-            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-emerald-500/30 text-xs transition disabled:opacity-50"
+            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-xs transition disabled:opacity-50"
           >
-            <div className="font-medium text-emerald-400 text-[11px]">Real Normal</div>
-            <div className="text-[10px] text-slate-400 truncate">Healthy Lungs Control</div>
+            <div className="font-medium text-emerald-400 text-xs">Normal</div>
+            <div className="text-[10px] text-slate-400 truncate">Clear lung fields</div>
           </button>
           <button
             type="button"
             disabled={disabled || !!loadingSample}
             onClick={() => loadSample("/samples/real_pneumonia_case.jpg", "real_patient_pneumonia.jpg")}
-            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-rose-500/30 text-xs transition disabled:opacity-50"
+            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-xs transition disabled:opacity-50"
           >
-            <div className="font-medium text-rose-300 text-[11px]">Viral Pneumonia</div>
-            <div className="text-[10px] text-slate-400 truncate">Bilateral Infiltrates</div>
+            <div className="font-medium text-rose-300 text-xs">Viral Pneumonia</div>
+            <div className="text-[10px] text-slate-400 truncate">Bilateral infiltrates</div>
           </button>
           <button
             type="button"
             disabled={disabled || !!loadingSample}
             onClick={() => loadSample("/samples/real_bacterial_pneumonia.jpg", "real_patient_bacterial.jpg")}
-            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-amber-500/30 text-xs transition disabled:opacity-50"
+            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-xs transition disabled:opacity-50"
           >
-            <div className="font-medium text-amber-300 text-[11px]">Bacterial Pneumonia</div>
-            <div className="text-[10px] text-slate-400 truncate">Streptococcus Opacity</div>
+            <div className="font-medium text-amber-300 text-xs">Bacterial Pneumonia</div>
+            <div className="text-[10px] text-slate-400 truncate">Lobar consolidation</div>
           </button>
           <button
             type="button"
             disabled={disabled || !!loadingSample}
             onClick={() => loadSample("/samples/real_severe_ards.jpg", "real_patient_severe_ards.jpg")}
-            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-blue-500/30 text-xs transition disabled:opacity-50"
+            className="px-2.5 py-2 text-left rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-xs transition disabled:opacity-50"
           >
-            <div className="font-medium text-blue-300 text-[11px]">Severe ARDS</div>
-            <div className="text-[10px] text-slate-400 truncate">Alveolar Infiltrates</div>
+            <div className="font-medium text-blue-300 text-xs">Severe ARDS</div>
+            <div className="text-[10px] text-slate-400 truncate">Diffuse alveolar opacity</div>
           </button>
         </div>
       </div>

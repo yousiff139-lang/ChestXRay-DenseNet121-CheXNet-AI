@@ -77,6 +77,7 @@ class UnifiedDiagnosticService:
             await self.yolo_service.detect_pathologies(
                 image_path=image_path,
                 dense_positive_findings=positive_disease_names,
+                dense_predictions=densenet_resp.predictions,
             )
         )
 
@@ -91,12 +92,13 @@ class UnifiedDiagnosticService:
             all_detected_conditions
         )
 
-        # Step 5: Gemini VLM Global Audit & Curative Report Generation
-        gemini_audit = await self.gemini_agent.audit_chest_xray(image_path)
-        audit_summary = gemini_audit.get("summary", "Automated diagnostic audit complete.")
-
+        # Step 5: Gemini VLM Global Audit & Curative Report Generation (On-Demand)
         diagnostic_report = None
+        audit_summary = "Preliminary localization and multi-label classification complete."
+
         if generate_full_report:
+            gemini_audit = await self.gemini_agent.audit_chest_xray(image_path)
+            audit_summary = gemini_audit.get("summary", "Automated diagnostic audit complete.")
             diagnostic_report = await self.gemini_agent.generate_comprehensive_report(
                 classifications=densenet_resp.predictions,
                 detections=detections,

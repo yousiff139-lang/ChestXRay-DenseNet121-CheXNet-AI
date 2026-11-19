@@ -386,7 +386,7 @@ async def detect_and_diagnose(
     ],
     settings: Annotated[Settings, Depends(get_settings)],
     include_resnet: bool = True,
-    generate_report: bool = True,
+    generate_report: bool = False,
 ) -> UnifiedDiagnosisResponse:
     """
     Unified multi-model diagnostic endpoint:
@@ -464,7 +464,7 @@ async def detect_and_diagnose_dicom(
     ],
     settings: Annotated[Settings, Depends(get_settings)],
     include_resnet: bool = True,
-    generate_report: bool = True,
+    generate_report: bool = False,
 ) -> UnifiedDiagnosisResponse:
     """
     Unified diagnostic endpoint for DICOM chest X-rays (.dcm).

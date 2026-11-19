@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Download, FileText, CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Download, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -32,7 +32,7 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#090d16",
+        backgroundColor: "#020617",
       });
 
       const imgData = canvas.toDataURL("image/png");
@@ -59,24 +59,24 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
       case "severe":
       case "urgent":
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-            <ShieldAlert className="w-3.5 h-3.5" />
-            Severe / Urgent
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Urgent Attention
           </span>
         );
       case "moderate":
       case "high":
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Moderate Severity
+            Moderate Findings
           </span>
         );
       default:
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            Normal / Low Risk
+            Low Risk / Stable
           </span>
         );
     }
@@ -85,17 +85,12 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Action Bar */}
-      <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 px-5 py-3 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-cyan-400" />
-          <div>
-            <h3 className="font-bold text-slate-100 text-sm">
-              Comprehensive Radiologist Clinical Dossier
-            </h3>
-            <p className="text-[11px] text-slate-400">
-              Generated via Gemini Multimodal VLM with Curative Protocol Synthesis
-            </p>
-          </div>
+      <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 px-4 py-3 rounded-xl">
+        <div className="flex items-center gap-2.5">
+          <FileText className="w-4 h-4 text-blue-400" />
+          <h3 className="font-semibold text-slate-100 text-sm">
+            Radiology Diagnostic Report
+          </h3>
         </div>
 
         <div className="flex items-center gap-3">
@@ -104,10 +99,10 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
             type="button"
             onClick={handleExportPDF}
             disabled={exporting}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-all shadow-md active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{exporting ? "Generating PDF..." : "Export PDF Dossier"}</span>
+            <span>{exporting ? "Generating PDF..." : "Export PDF"}</span>
           </button>
         </div>
       </div>
@@ -115,26 +110,25 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
       {/* Printable Report Document Card */}
       <div
         ref={reportRef}
-        className="bg-slate-950 border border-slate-800/90 rounded-2xl p-7 shadow-2xl text-slate-200"
+        className="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl text-slate-200"
       >
         {/* Document Header */}
-        <div className="border-b border-slate-800 pb-5 mb-6 flex items-start justify-between">
+        <div className="border-b border-slate-800 pb-4 mb-5 flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold text-slate-100 tracking-tight flex items-center gap-2">
-              <span className="text-cyan-400">🫁</span>
-              CHEST X-RAY RADIOLOGY CLINICAL REPORT
+            <h1 className="text-base font-bold text-slate-100 tracking-tight">
+              Chest Radiograph Clinical Report
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Dual-Brain Artificial Intelligence Radiography Interpretation System
+            <p className="text-xs text-slate-400 mt-0.5">
+              Automated computer-aided radiograph analysis
             </p>
           </div>
-          <div className="text-right text-xs text-slate-400 space-y-1">
+          <div className="text-right text-xs text-slate-400 space-y-0.5">
             <div>
-              <span className="text-slate-500">Case ID: </span>
-              <span className="font-mono text-slate-300">{patientId || "ANON-CXRAY"}</span>
+              <span className="text-slate-500">Scan ID: </span>
+              <span className="font-medium text-slate-300">{patientId || "CXRAY-SCAN"}</span>
             </div>
             <div>
-              <span className="text-slate-500">Report Date: </span>
+              <span className="text-slate-500">Date: </span>
               <span className="text-slate-300">
                 {report.generated_at
                   ? new Date(report.generated_at).toLocaleString()
@@ -146,28 +140,45 @@ export const DiagnosticReportViewer: React.FC<DiagnosticReportViewerProps> = ({
 
         {/* Clinical Summary Highlight Box */}
         {report.summary && (
-          <div className="bg-cyan-950/20 border border-cyan-800/30 rounded-xl p-4 mb-6">
-            <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">
-              Executive Clinical Impression
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-3.5 mb-5">
+            <span className="text-[11px] font-semibold text-blue-300 block mb-1">
+              Clinical Impression Summary
             </span>
-            <p className="text-xs text-cyan-100/90 leading-relaxed font-medium">
+            <p className="text-xs text-slate-200 leading-relaxed">
               {report.summary}
             </p>
           </div>
         )}
 
         {/* Formatted Markdown Body */}
-        <div className="text-xs text-slate-300 leading-relaxed space-y-4 whitespace-pre-wrap font-sans">
+        <div className="text-xs text-slate-300 leading-relaxed space-y-3 whitespace-pre-wrap font-sans">
           {report.report}
         </div>
 
+        {/* Recommendations */}
+        {report.recommendations && report.recommendations.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-slate-800">
+            <span className="text-xs font-semibold text-slate-300 block mb-2">
+              Clinical Recommendations
+            </span>
+            <ul className="space-y-1.5">
+              {report.recommendations.map((rec, i) => (
+                <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                  <span className="text-blue-400 font-bold">•</span>
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Footer Disclaimer */}
-        <div className="border-t border-slate-800/80 pt-5 mt-7 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="border-t border-slate-800 pt-4 mt-6 flex items-center justify-between text-[11px] text-slate-500">
           <span>
-            Research prototype developed for thoracic disease detection and localization.
+            Research prototype for computer-aided chest X-ray interpretation.
           </span>
-          <span className="font-semibold text-slate-400">
-            Requires Certified Radiologist Attestation
+          <span className="font-medium text-slate-400">
+            Requires Certified Radiologist Review
           </span>
         </div>
       </div>

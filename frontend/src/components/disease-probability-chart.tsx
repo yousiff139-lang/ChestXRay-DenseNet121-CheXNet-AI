@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { DiseaseClassification } from "../lib/types";
-import { DISEASE_INFO } from "../lib/constants";
-import { AlertCircle, CheckCircle2, HelpCircle, ShieldAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, HelpCircle } from "lucide-react";
 
 interface DiseaseProbabilityChartProps {
   predictions: DiseaseClassification[];
@@ -25,15 +24,15 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
       : sorted;
 
   return (
-    <div className="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col h-full">
+    <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5 flex flex-col h-full">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800 mb-3">
+      <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800 mb-2.5">
         <div>
-          <h4 className="text-sm font-semibold text-slate-100">
-            Multi-Label Pathology Spectrum
+          <h4 className="text-xs font-semibold text-slate-100">
+            Pathology Probabilities
           </h4>
-          <p className="text-xs text-slate-400">
-            Calibrated sigmoid probabilities &amp; validation thresholds (Youden&apos;s J)
+          <p className="text-[10px] text-slate-400">
+            DenseNet-121 multi-label inference
           </p>
         </div>
 
@@ -48,7 +47,7 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            All 14 Classes
+            All (14)
           </button>
           <button
             type="button"
@@ -65,10 +64,10 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
       </div>
 
       {/* Disease List */}
-      <div className="space-y-2 overflow-y-auto pr-1 max-h-[460px] custom-scrollbar flex-1">
+      <div className="space-y-1.5 overflow-y-auto pr-1 max-h-[380px] flex-1">
         {displayed.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 text-xs">
-            No abnormalities or uncertain findings detected.
+          <div className="py-8 text-center text-slate-500 text-xs">
+            No abnormal findings detected.
           </div>
         ) : (
           displayed.map((item) => {
@@ -77,25 +76,20 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
             const isPositive = state === "Positive";
             const isUncertain = state === "Uncertain";
             const threshold = item.threshold !== undefined ? item.threshold : confidenceThreshold;
-            const thresholdPct = (threshold * 100).toFixed(1);
-            const prevalencePct = item.prevalence !== undefined && item.prevalence !== null
-              ? (item.prevalence * 100).toFixed(1)
-              : null;
-            const info = DISEASE_INFO[item.disease_name];
 
             return (
               <div
                 key={item.disease_name}
-                className={`p-2.5 rounded-lg border transition-colors ${
+                className={`p-2 rounded-lg border text-xs transition ${
                   isPositive
-                    ? "bg-rose-950/20 border-rose-500/35"
+                    ? "bg-rose-950/20 border-rose-500/30"
                     : isUncertain
-                    ? "bg-amber-950/20 border-amber-500/35"
-                    : "bg-slate-950/40 border-slate-800/80"
+                    ? "bg-amber-950/20 border-amber-500/30"
+                    : "bg-slate-950/50 border-slate-800/80"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
                     {isPositive ? (
                       <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                     ) : isUncertain ? (
@@ -104,39 +98,33 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
                       <CheckCircle2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                     )}
                     <span
-                      className={`text-xs ${
+                      className={`font-medium ${
                         isPositive
-                          ? "font-semibold text-rose-200"
+                          ? "text-rose-200 font-semibold"
                           : isUncertain
-                          ? "font-semibold text-amber-200"
-                          : "font-medium text-slate-300"
+                          ? "text-amber-200 font-semibold"
+                          : "text-slate-300"
                       }`}
                     >
                       {item.disease_name.replace("_", " ")}
                     </span>
-                    {info && (
-                      <span className="text-[10px] font-mono text-slate-400 border border-slate-700/60 rounded px-1.5 py-0.2">
-                        {info.clinicalConcern}
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* 3-State Badge */}
                     <span
-                      className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border ${
+                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize ${
                         isPositive
-                          ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                          ? "bg-rose-500/20 text-rose-300"
                           : isUncertain
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "bg-slate-800 text-slate-400 border-slate-700"
+                          ? "bg-amber-500/20 text-amber-300"
+                          : "text-slate-500"
                       }`}
                     >
                       {state}
                     </span>
 
                     <span
-                      className={`text-xs font-mono font-bold ${
+                      className={`font-mono text-xs font-semibold ${
                         isPositive
                           ? "text-rose-400"
                           : isUncertain
@@ -149,12 +137,12 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
                   </div>
                 </div>
 
-                {/* Progress bar with per-class threshold marker */}
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
+                {/* Progress bar */}
+                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden relative">
                   <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-slate-400 z-10"
+                    className="absolute top-0 bottom-0 w-px bg-slate-500 z-10"
                     style={{ left: `${Math.min(threshold * 100, 100)}%` }}
-                    title={`Validation threshold: ${thresholdPct}%`}
+                    title={`Threshold: ${(threshold * 100).toFixed(0)}%`}
                   />
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
@@ -167,22 +155,10 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
                     style={{ width: `${Math.min(item.probability * 100, 100)}%` }}
                   />
                 </div>
-
-                {/* Sub-label: Cutoff and Prevalence info */}
-                <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-1">
-                  <span>Cutoff: {thresholdPct}%</span>
-                  {prevalencePct && <span>Prevalence: {prevalencePct}%</span>}
-                </div>
               </div>
             );
           })
         )}
-      </div>
-
-      {/* Mandatory Disclaimer Footer */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center gap-1.5 text-[11px] text-slate-400">
-        <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-        <span>Research prototype. Not for clinical use.</span>
       </div>
     </div>
   );

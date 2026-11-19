@@ -9,9 +9,9 @@ const ChestDashboard = dynamic(
     loading: () => (
       <div className="min-h-screen w-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-400">
-          <div className="w-10 h-10 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
           <span className="text-xs font-medium tracking-wide">
-            Loading ChestXRay AI (DenseNet-121)...
+            Loading Diagnostic Workstation...
           </span>
         </div>
       </div>

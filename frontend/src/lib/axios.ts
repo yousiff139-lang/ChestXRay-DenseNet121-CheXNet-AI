@@ -25,16 +25,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle common errors here
     if (error.response) {
-      // Server responded with a status code outside the 2xx range
-      console.error("API Error:", error.response.data);
+      console.warn("API Error:", error.response.status, error.response.data);
     } else if (error.request) {
-      // Request was made but no response was received
-      console.error("Network Error:", error.message);
+      console.warn("Network Error: Backend may not be reachable at", error.config?.baseURL || "endpoint");
     } else {
-      // Something happened in setting up the request
-      console.error("Request Error:", error.message);
+      console.warn("Request Error:", error.message);
     }
     return Promise.reject(error);
   }

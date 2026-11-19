@@ -130,9 +130,11 @@ class YoloDetectionService:
         image_path: str,
         confidence_threshold: float = 0.15,
         dense_positive_findings: Optional[List[str]] = None,
+        dense_predictions: Optional[List[Any]] = None,
     ) -> Tuple[List[ThoracicDetection], Optional[str], int, int]:
         """
         Detect pathologies, square them with bounding boxes, and generate annotated overlay.
+        Harmonized with DenseNet-121 multi-label classifications.
 
         Returns:
             Tuple of:
@@ -143,36 +145,45 @@ class YoloDetectionService:
         """
         img = cv2.imread(image_path)
         if img is None:
-            # Try PIL fallback
             pil_img = Image.open(image_path).convert("RGB")
             img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
         h, w = img.shape[:2]
         detections: List[ThoracicDetection] = []
 
-        # 1. Attempt Roboflow Hosted YOLO Detection
-        roboflow_detections = await self._query_roboflow(image_path, confidence_threshold)
-        if roboflow_detections:
-            detections.extend(roboflow_detections)
+        # 1. Attempt Roboflow Hosted YOLO Detection (only if a valid chest X-ray model is configured)
+        model_id = self.settings.roboflow_model_id or ""
+        # Skip dental models like datamed-6oe4k/2
+        if model_id and not model_id.startswith("datamed"):
+            roboflow_detections = await self._query_roboflow(image_path, confidence_threshold)
+            if roboflow_detections:
+                detections.extend(roboflow_detections)
 
-        # 2. If Roboflow returned few/no detections or we have confirmed DenseNet positives,
-        # consult Gemini Vision Spatial VLM to guarantee precise bounding boxes for all present pathologies
-        if len(detections) == 0 or (dense_positive_findings and len(detections) < len(dense_positive_findings)):
-            vlm_detections = await self._query_gemini_spatial(
-                image_path=image_path,
-                dense_positives=dense_positive_findings,
-                img_width=w,
-                img_height=h
-            )
-            # Merge and deduplicate by IoU
-            for vd in vlm_detections:
-                if not any(self._calculate_iou(vd.bbox, d.bbox) > 0.4 for d in detections):
-                    detections.append(vd)
+        # 2. Query Gemini Vision Spatial VLM to localize lesions matching DenseNet findings
+        vlm_detections = await self._query_gemini_spatial(
+            image_path=image_path,
+            dense_positives=dense_positive_findings,
+            dense_predictions=dense_predictions,
+            img_width=w,
+            img_height=h
+        )
 
-        # 3. Render High-Definition Bounding Box Annotated Overlay
-        annotated_b64 = self._render_annotated_overlay(img, detections)
+        # Merge VLM detections and harmonize with DenseNet
+        for vd in vlm_detections:
+            if not any(self._calculate_iou(vd.bbox, d.bbox) > 0.4 for d in detections):
+                detections.append(vd)
 
-        return detections, annotated_b64, w, h
+        # 3. Harmonize and normalize detection labels with DenseNet predictions
+        harmonized_detections = self._harmonize_with_densenet(
+            detections=detections,
+            dense_positives=dense_positive_findings or [],
+            dense_predictions=dense_predictions or []
+        )
+
+        # 4. Render High-Definition Bounding Box Annotated Overlay
+        annotated_b64 = self._render_annotated_overlay(img, harmonized_detections)
+
+        return harmonized_detections, annotated_b64, w, h
 
     async def _query_roboflow(
         self, image_path: str, confidence_threshold: float
@@ -255,10 +266,11 @@ class YoloDetectionService:
         self,
         image_path: str,
         dense_positives: Optional[List[str]],
+        dense_predictions: Optional[List[Any]],
         img_width: int,
         img_height: int,
     ) -> List[ThoracicDetection]:
-        """Use Gemini Vision to localize lesions with bounding boxes."""
+        """Use Gemini Vision to localize lesions matching DenseNet-121 classification."""
         api_key = self.settings.gemini_api_key
         if not api_key:
             return []
@@ -270,14 +282,28 @@ class YoloDetectionService:
         pil_img.save(buf, format="JPEG", quality=85)
         img_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
-        pos_str = f"Focus particularly on verifying these suspected conditions: {', '.join(dense_positives)}" if dense_positives else ""
+        # Format DenseNet findings for guidance
+        if dense_positives and len(dense_positives) > 0:
+            pos_context = f"""
+DenseNet-121 multi-label classifier detected the following abnormal findings on this scan:
+{', '.join(dense_positives)}
+Your primary task is to localize the anatomical region (square/box) for each of these detected findings.
+Use the exact class names from this list: {', '.join(CHEST_XRAY_CLASSES)}.
+Do NOT invent unrelated conditions that contradict the classifier.
+"""
+        else:
+            pos_context = f"""
+DenseNet-121 multi-label classifier found NO significant abnormal findings (all 14 thoracic categories below clinical threshold).
+Confirm if this chest radiograph is normal/clear. If clear, return an empty array []. Only draw a box if there is an unmistakable gross lesion.
+Allowed class names: {', '.join(CHEST_XRAY_CLASSES)}.
+"""
 
-        prompt = f"""You are an expert thoracic radiologist and computer vision detector.
-Detect and localize all abnormal radiographic thoracic findings (such as Nodule, Consolidation, Infiltration, Pleural Effusion, Cardiomegaly, Atelectasis, Pneumothorax, Mass, Edema) on this frontal chest X-ray.
-{pos_str}
+        prompt = f"""You are a thoracic radiology AI localization expert.
+Analyze this frontal chest X-ray and localize all abnormal radiographic lesions.
+{pos_context}
 
 For each finding, provide:
-- label: standard pathology name
+- label: standard pathology name (must be one of: {', '.join(CHEST_XRAY_CLASSES)})
 - box_2d: [ymin, xmin, ymax, xmax] coordinates normalized on a 0-1000 scale
 - confidence: float between 0.0 and 1.0
 - severity: "mild", "moderate", or "severe"
@@ -295,7 +321,7 @@ Respond strictly in valid JSON format:
   }}
 ]
 ```
-If the radiograph is completely clear with no abnormalities, return [].
+If the radiograph is normal and clear, return [].
 """
 
         payload = {
@@ -416,6 +442,105 @@ If the radiograph is completely clear with no abnormalities, return [].
         except Exception as e:
             logger.warning(f"Gemini spatial detection parsing failed: {e}")
             return []
+
+    def _harmonize_with_densenet(
+        self,
+        detections: List[ThoracicDetection],
+        dense_positives: List[str],
+        dense_predictions: List[Any],
+    ) -> List[ThoracicDetection]:
+        """
+        Reconcile bounding box detections with DenseNet-121 classification output.
+        - Maps synonyms and closely-related radiological terms to standard classes
+        - Prevents conflicting labels between image boxes and classification panel
+        - Suppresses spurious bounding boxes on confirmed normal scans
+        """
+        # If DenseNet found NO abnormalities (normal radiograph), suppress false-positive boxes
+        if not dense_positives:
+            # Check if any detection has very high confidence (> 0.90) as an exception
+            return [d for d in detections if d.confidence > 0.90]
+
+        # Build lookup for DenseNet probabilities: disease_name -> prob
+        prob_map: Dict[str, float] = {}
+        for p in dense_predictions:
+            name = getattr(p, "disease_name", None) or (p.get("disease_name") if isinstance(p, dict) else None)
+            prob = getattr(p, "probability", None) or (p.get("probability") if isinstance(p, dict) else None)
+            if name and prob is not None:
+                prob_map[name.lower().replace("_", " ")] = float(prob)
+                prob_map[name.lower()] = float(prob)
+
+        # Common clinical synonym mappings
+        synonym_map = {
+            "pleural effusion": "Effusion",
+            "effusion": "Effusion",
+            "infiltrate": "Infiltration",
+            "infiltrates": "Infiltration",
+            "infiltration": "Infiltration",
+            "consolidation": "Consolidation",
+            "pneumonia": "Pneumonia",
+            "cardiomegaly": "Cardiomegaly",
+            "enlarged heart": "Cardiomegaly",
+            "atelectasis": "Atelectasis",
+            "collapse": "Atelectasis",
+            "pneumothorax": "Pneumothorax",
+            "mass": "Mass",
+            "nodule": "Nodule",
+            "edema": "Edema",
+            "pulmonary edema": "Edema",
+            "emphysema": "Emphysema",
+            "fibrosis": "Fibrosis",
+            "pleural thickening": "Pleural_Thickening",
+            "hernia": "Hernia",
+        }
+
+        # Airspace opacity family (often overlapping between models)
+        airspace_family = {"pneumonia", "infiltration", "consolidation"}
+
+        dense_positives_lower = [dp.lower().replace("_", " ") for dp in dense_positives]
+
+        harmonized: List[ThoracicDetection] = []
+        for det in detections:
+            raw_label = det.class_name.lower().strip()
+            norm_name = synonym_map.get(raw_label, det.class_name)
+
+            # Check if the detected label belongs to the airspace opacity family
+            # and DenseNet strongly predicted another member of the family
+            if raw_label in airspace_family:
+                matching_dense = [dp for dp in dense_positives if dp.lower().replace("_", " ") in airspace_family]
+                if matching_dense:
+                    # Align with DenseNet's highest predicted airspace pathology
+                    norm_name = matching_dense[0]
+
+            # Reconcile label with DenseNet positive findings if there is a match
+            for dp in dense_positives:
+                if dp.lower().replace("_", " ") in raw_label or raw_label in dp.lower().replace("_", " "):
+                    norm_name = dp
+                    break
+
+            # Calibrate confidence with DenseNet probability if available
+            key = norm_name.lower().replace("_", " ")
+            if key in prob_map:
+                c_prob = prob_map[key]
+                calibrated_conf = round(max(det.confidence * 0.4 + c_prob * 0.6, 0.40), 2)
+            else:
+                calibrated_conf = det.confidence
+
+            color = PATHOLOGY_COLOR_MAP.get(norm_name.replace(" ", "_"), PATHOLOGY_COLOR_MAP.get(norm_name, "#ef4444"))
+
+            harmonized.append(
+                ThoracicDetection(
+                    id=det.id,
+                    class_name=norm_name.replace("_", " "),
+                    confidence=calibrated_conf,
+                    bbox=det.bbox,
+                    verified=True,
+                    severity=det.severity,
+                    color=color,
+                    description=det.description,
+                )
+            )
+
+        return harmonized
 
     def _render_annotated_overlay(
         self, img: np.ndarray, detections: List[ThoracicDetection]

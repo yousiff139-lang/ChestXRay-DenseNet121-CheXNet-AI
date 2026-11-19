@@ -60,49 +60,16 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
         const isSelected = selectedDetection?.id === d.id;
         const color = d.color || "#ef4444";
 
-        // Draw soft transparent fill
-        ctx.fillStyle = `${color}25`; // 15% opacity hex
+        // Subtle transparent fill
+        ctx.fillStyle = `${color}18`;
         ctx.fillRect(x, y, bw, bh);
 
-        // Draw outer glowing stroke
+        // Clean crisp bounding box
         ctx.strokeStyle = color;
         ctx.lineWidth = isSelected ? 3 : 2;
         ctx.strokeRect(x, y, bw, bh);
 
-        // Draw corner brackets
-        const bracket = Math.min(18, Math.max(6, Math.min(bw, bh) * 0.25));
-        ctx.lineWidth = 3.5;
-        ctx.strokeStyle = color;
-
-        // Top-left
-        ctx.beginPath();
-        ctx.moveTo(x, y + bracket);
-        ctx.lineTo(x, y);
-        ctx.lineTo(x + bracket, y);
-        ctx.stroke();
-
-        // Top-right
-        ctx.beginPath();
-        ctx.moveTo(x + bw - bracket, y);
-        ctx.lineTo(x + bw, y);
-        ctx.lineTo(x + bw, y + bracket);
-        ctx.stroke();
-
-        // Bottom-left
-        ctx.beginPath();
-        ctx.moveTo(x, y + bh - bracket);
-        ctx.lineTo(x, y + bh);
-        ctx.lineTo(x + bracket, y + bh);
-        ctx.stroke();
-
-        // Bottom-right
-        ctx.beginPath();
-        ctx.moveTo(x + bw - bracket, y + bh);
-        ctx.lineTo(x + bw, y + bh);
-        ctx.lineTo(x + bw, y + bh - bracket);
-        ctx.stroke();
-
-        // Draw top badge with label and confidence
+        // Clean top label badge
         const text = `${d.class_name} ${Math.round(d.confidence * 100)}%`;
         ctx.font = "bold 11px Inter, system-ui, sans-serif";
         const textMetrics = ctx.measureText(text);
@@ -112,10 +79,10 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
 
         const badgeY = Math.max(0, y - badgeHeight - 2);
 
-        // Badge pill background
+        // Badge background
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.roundRect(x, badgeY, badgeWidth, badgeHeight, 4);
+        ctx.roundRect(x, badgeY, badgeWidth, badgeHeight, 3);
         ctx.fill();
 
         // Badge text
@@ -133,22 +100,22 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
   }, [detections, showBoxes, selectedDetection]);
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Telemetry Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 backdrop-blur-md border border-slate-800 px-4 py-2.5 rounded-xl">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-2.5">
+      {/* Viewer Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-xl">
+        <div className="flex items-center gap-2">
           {/* Toggle Bounding Boxes */}
           <button
             type="button"
             onClick={() => onToggleBoxes?.(!showBoxes)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               showBoxes
-                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                ? "bg-blue-600/20 text-blue-300 border border-blue-500/30"
                 : "bg-slate-800 text-slate-400 hover:text-slate-200"
             }`}
           >
             {showBoxes ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span>YOLO Squares ({detections.length})</span>
+            <span>Bounding Boxes ({detections.length})</span>
           </button>
 
           {/* Toggle Grad-CAM Heatmap */}
@@ -156,9 +123,9 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             <button
               type="button"
               onClick={() => onToggleGradcam?.(!showGradcam)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 showGradcam
-                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                  ? "bg-amber-600/20 text-amber-300 border border-amber-500/30"
                   : "bg-slate-800 text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -171,16 +138,16 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
         {/* Grad-CAM Opacity Slider */}
         {gradcamSrc && showGradcam && (
           <div className="flex items-center gap-2 text-xs text-slate-300">
-            <span className="text-slate-400 font-medium">Heatmap Blend:</span>
+            <span className="text-slate-400">Blend:</span>
             <input
               type="range"
               min={0}
               max={100}
               value={gradcamOpacity}
               onChange={(e) => onChangeOpacity?.(Number(e.target.value))}
-              className="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              className="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
-            <span className="font-mono text-cyan-400 w-8 text-right">{gradcamOpacity}%</span>
+            <span className="text-slate-400 w-7 text-right">{gradcamOpacity}%</span>
           </div>
         )}
       </div>
@@ -188,7 +155,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
       {/* Radiograph Viewport */}
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-2xl bg-black border border-slate-800/80 shadow-2xl flex items-center justify-center min-h-[420px]"
+        className="relative overflow-hidden rounded-xl bg-black border border-slate-800 flex items-center justify-center min-h-[420px]"
       >
         {/* Base X-Ray Image */}
         <img
@@ -198,7 +165,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
           className="w-full max-h-[640px] object-contain select-none block"
         />
 
-        {/* Grad-CAM Heatmap Overlay Layer */}
+        {/* Grad-CAM Heatmap Overlay */}
         {gradcamSrc && showGradcam && (
           <img
             src={
@@ -212,36 +179,36 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
           />
         )}
 
-        {/* HTML5 Canvas for Sub-Pixel Bounding Boxes */}
+        {/* HTML5 Canvas for Bounding Boxes */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full pointer-events-none"
         />
       </div>
 
-      {/* Quick Bounding Box Legend */}
+      {/* Bounding Box Legend */}
       {showBoxes && detections.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Detected Lesions:
+          <span className="text-[11px] font-medium text-slate-400">
+            Detected:
           </span>
           {detections.map((d) => (
             <button
               key={d.id}
               type="button"
               onClick={() => setSelectedDetection(selectedDetection?.id === d.id ? null : d)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition ${
                 selectedDetection?.id === d.id
-                  ? "bg-slate-800 border-white text-white shadow-sm"
-                  : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                  ? "bg-slate-800 border-slate-400 text-white"
+                  : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
               }`}
             >
               <span
-                className="w-2.5 h-2.5 rounded-full inline-block"
+                className="w-2 h-2 rounded-full inline-block"
                 style={{ backgroundColor: d.color }}
               />
-              <span className="font-semibold">{d.class_name}</span>
-              <span className="text-slate-400 font-mono text-[10px]">
+              <span>{d.class_name}</span>
+              <span className="text-slate-400 text-[11px]">
                 {Math.round(d.confidence * 100)}%
               </span>
             </button>

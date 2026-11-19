@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback } from "react";
 import axios from "../lib/axios";
 import {
@@ -25,8 +27,9 @@ export function useChestClassification() {
     useState<UnifiedDiagnosisResponse | null>(null);
   const [benchmarkData, setBenchmarkData] = useState<BenchmarkMetrics | null>(null);
 
+  // Fast diagnostic pipeline: classify + bounding boxes immediately (reports generated on-demand)
   const detectAndDiagnose = useCallback(
-    async (file: File, includeResNet: boolean = true, generateReport: boolean = true) => {
+    async (file: File, includeResNet: boolean = true, generateReport: boolean = false) => {
       setDiagnosing(true);
       setError(null);
 
@@ -49,7 +52,7 @@ export function useChestClassification() {
         const data = response.data;
         setUnifiedResult(data);
 
-        // Derive and populate legacy classification state for seamless multi-view compatibility
+        // Derive and populate classification state for multi-view compatibility
         const densenetClassification: ClassificationResponse = {
           model_used: "DenseNet-121",
           predictions: data.predictions,
@@ -126,11 +129,90 @@ export function useChestClassification() {
       } catch (err: unknown) {
         const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
         const msg =
-          axiosError.response?.data?.detail || axiosError.message || "Diagnosis failed";
+          axiosError.response?.data?.detail || axiosError.message || "Diagnostic analysis failed";
         setError(msg);
         throw err;
       } finally {
         setDiagnosing(false);
+      }
+    },
+    []
+  );
+
+  // Dedicated on-demand report generation
+  const generateReportForImage = useCallback(
+    async (file: File) => {
+      setReporting(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const isDicom =
+        file.name.toLowerCase().endsWith(".dcm") ||
+        file.name.toLowerCase().endsWith(".dicom") ||
+        file.type === "application/dicom";
+
+      const endpoint = isDicom
+        ? `/detect-and-diagnose-dicom?include_resnet=false&generate_report=true`
+        : `/detect-and-diagnose?include_resnet=false&generate_report=true`;
+
+      try {
+        const response = await axios.post<UnifiedDiagnosisResponse>(endpoint, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        const data = response.data;
+
+        // Update unified result with the generated report
+        setUnifiedResult((prev) => {
+          if (!prev) return data;
+          return {
+            ...prev,
+            diagnostic_report: data.diagnostic_report,
+            gemini_audit_summary: data.gemini_audit_summary,
+          };
+        });
+
+        if (data.diagnostic_report) {
+          setReportResult({
+            diagnostic_report: {
+              report_id: "report-" + Date.now(),
+              generated_at: data.diagnostic_report.generated_at || new Date().toISOString(),
+              clinical_summary: data.diagnostic_report.summary,
+              findings: data.positive_findings.map((f, i) => ({
+                finding_id: `finding-${i}`,
+                disease_name: f.disease_name,
+                confidence: f.probability,
+                severity: "medium",
+                description: `${f.disease_name} detected with ${(f.probability * 100).toFixed(1)}% confidence`,
+                recommendations: [],
+              })),
+              impression: data.diagnostic_report.report,
+              recommendations: data.diagnostic_report.recommendations,
+              disclaimer: data.disclaimer,
+              urgency_level:
+                data.diagnostic_report.severity_level.toLowerCase() === "severe" ||
+                data.diagnostic_report.severity_level.toLowerCase() === "urgent"
+                  ? "urgent"
+                  : data.diagnostic_report.severity_level.toLowerCase() === "moderate" ||
+                    data.diagnostic_report.severity_level.toLowerCase() === "high"
+                  ? "high"
+                  : "medium",
+            },
+            classifications_used: data.predictions,
+            metadata: data.metadata,
+          });
+        }
+
+        return data;
+      } catch (err: unknown) {
+        const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+        const msg =
+          axiosError.response?.data?.detail || axiosError.message || "Report generation failed";
+        setError(msg);
+        throw err;
+      } finally {
+        setReporting(false);
       }
     },
     []
@@ -233,13 +315,14 @@ export function useChestClassification() {
     []
   );
 
+  // Non-blocking, completely silent benchmark fetcher
   const fetchBenchmark = useCallback(async () => {
     try {
       const response = await axios.get<BenchmarkMetrics>("/benchmark");
       setBenchmarkData(response.data);
       return response.data;
-    } catch (err: unknown) {
-      console.warn("Failed to fetch benchmark metrics:", err);
+    } catch {
+      // Silently ignore — benchmark data is non-critical
     }
   }, []);
 
@@ -263,6 +346,7 @@ export function useChestClassification() {
     unifiedResult,
     benchmarkData,
     detectAndDiagnose,
+    generateReportForImage,
     classifyImage,
     compareModels,
     generateReport,
