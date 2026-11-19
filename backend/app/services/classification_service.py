@@ -96,12 +96,20 @@ class ClassificationService:
         self, input_tensor: torch.Tensor, model_name: str = "densenet"
     ) -> Tuple[np.ndarray, float]:
         """
-        Run inference through the specified model.
+        Run inference through the specified model with 2-View Test-Time Augmentation (TTA)
+        from the Colab notebook (averaging original + horizontally flipped views).
 
         Returns:
             Tuple of (probabilities_array [14], inference_time_ms)
         """
         device = self.model_service.get_device()
+
+        if model_name == "ensemble":
+            # Run calibrated ensemble of DenseNet-121 (0.70) and ResNet-50 (0.30)
+            p_dense, t_dense = self._run_inference(input_tensor, model_name="densenet")
+            p_res, t_res = self._run_inference(input_tensor, model_name="resnet")
+            p_ensemble = 0.70 * p_dense + 0.30 * p_res
+            return p_ensemble, t_dense + t_res
 
         if model_name == "densenet":
             model = self.model_service.get_densenet()
@@ -113,7 +121,13 @@ class ClassificationService:
 
         start_time = time.perf_counter()
         with torch.no_grad():
-            out = model(input_tensor)
+            # 2-View Test-Time Augmentation (Colab notebook CheXNet methodology)
+            # Averages predictions from original and horizontally flipped view.
+            # Cancels sensor artifacts, reduces spatial variance, and avoids overfitting.
+            input_flip = torch.flip(input_tensor, dims=[3])
+            out_orig = model(input_tensor)
+            out_flip = model(input_flip)
+            out = 0.5 * (out_orig + out_flip)
         inference_time_ms = (time.perf_counter() - start_time) * 1000
 
         # Handle torchxrayvision models
@@ -215,7 +229,12 @@ class ClassificationService:
             key=lambda x: (x.state == "Positive", x.probability), reverse=True
         )
 
-        display_name = "DenseNet-121" if model_name == "densenet" else "ResNet-50"
+        if model_name == "densenet":
+            display_name = "DenseNet-121"
+        elif model_name == "resnet":
+            display_name = "ResNet-50"
+        else:
+            display_name = "Ensemble (DenseNet + ResNet)"
 
         return ClassificationResponse(
             predictions=predictions,

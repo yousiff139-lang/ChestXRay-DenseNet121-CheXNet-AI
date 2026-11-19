@@ -42,23 +42,23 @@ CHEST_XRAY_PREVALENCE = {
     "Pneumothorax": 0.0473,
 }
 
-# Per-class operating decision thresholds for unwarped multi-dataset DenseNet-121 (densenet121-res224-all)
-# Chosen to maximize Youden's J statistic with high specificity on normal chest films
+# Per-class operating decision thresholds calibrated via Youden's J statistic (1.35 * TPR - FPR)
+# from the Colab notebook. Balances high sensitivity on true lesions with high specificity on normal scans.
 CHEST_XRAY_VALIDATION_THRESHOLDS = {
-    "Atelectasis": 0.1000,
-    "Cardiomegaly": 0.1000,
-    "Consolidation": 0.0800,
-    "Edema": 0.0500,
-    "Effusion": 0.1000,
-    "Emphysema": 0.0500,
-    "Fibrosis": 0.0500,
-    "Hernia": 0.0200,
+    "Atelectasis": 0.1200,
+    "Cardiomegaly": 0.1200,
+    "Consolidation": 0.1500,
+    "Edema": 0.1000,
+    "Effusion": 0.1500,
+    "Emphysema": 0.1000,
+    "Fibrosis": 0.1000,
+    "Hernia": 0.0500,
     "Infiltration": 0.2000,
-    "Mass": 0.0800,
-    "Nodule": 0.0800,
-    "Pleural_Thickening": 0.0500,
-    "Pneumonia": 0.0500,
-    "Pneumothorax": 0.0500,
+    "Mass": 0.1500,
+    "Nodule": 0.1500,
+    "Pleural_Thickening": 0.1000,
+    "Pneumonia": 0.1000,
+    "Pneumothorax": 0.1000,
 }
 
 

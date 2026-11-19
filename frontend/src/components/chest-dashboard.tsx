@@ -127,7 +127,7 @@ export const ChestDashboard: React.FC = () => {
       </header>
 
       {/* Main Body */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 pt-6 pb-20 space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 pt-6 pb-16 space-y-6">
         {/* Error Alert */}
         {error && (
           <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2.5">
@@ -465,7 +465,7 @@ export const ChestDashboard: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto w-full border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-500 bg-slate-950 relative z-10">
+      <footer className="mt-auto shrink-0 clear-both w-full border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-500 bg-slate-950 relative z-20">
         Research prototype for thoracic pathology detection and lesion localization. Requires certified radiologist verification.
       </footer>
     </div>
