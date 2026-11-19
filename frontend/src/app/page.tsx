@@ -21,8 +21,8 @@ const ChestDashboard = dynamic(
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950" suppressHydrationWarning>
+    <div className="min-h-screen bg-slate-950 flex flex-col" suppressHydrationWarning>
       <ChestDashboard />
-    </main>
+    </div>
   );
 }

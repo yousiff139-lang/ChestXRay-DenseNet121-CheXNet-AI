@@ -127,7 +127,7 @@ export const ChestDashboard: React.FC = () => {
       </header>
 
       {/* Main Body */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-6 space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 pt-6 pb-20 space-y-6">
         {/* Error Alert */}
         {error && (
           <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2.5">
@@ -257,7 +257,7 @@ export const ChestDashboard: React.FC = () => {
 
             {/* TAB 1: Image & Findings */}
             {activeTab === "findings" && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Left: Interactive Canvas with Bounding Boxes & GradCAM (7 cols) */}
                 <div className="lg:col-span-7 space-y-3">
                   <BoundingBoxCanvas
@@ -277,7 +277,7 @@ export const ChestDashboard: React.FC = () => {
                 </div>
 
                 {/* Right: Detected Regions + Multi-Label Probabilities (5 cols) */}
-                <div className="lg:col-span-5 space-y-4">
+                <div className="lg:col-span-5 flex flex-col gap-4">
                   {/* Localized Lesion Summary (if boxes exist) */}
                   {unifiedResult && unifiedResult.detections.length > 0 ? (
                     <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
@@ -465,7 +465,7 @@ export const ChestDashboard: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-[11px] text-slate-500">
+      <footer className="mt-auto w-full border-t border-slate-800/80 py-5 px-6 text-center text-xs text-slate-500 bg-slate-950 relative z-10">
         Research prototype for thoracic pathology detection and lesion localization. Requires certified radiologist verification.
       </footer>
     </div>

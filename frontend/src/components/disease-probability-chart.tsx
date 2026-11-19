@@ -24,7 +24,7 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
       : sorted;
 
   return (
-    <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5 flex flex-col h-full">
+    <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-3.5 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800 mb-2.5">
         <div>
@@ -64,7 +64,7 @@ export const DiseaseProbabilityChart: React.FC<DiseaseProbabilityChartProps> = (
       </div>
 
       {/* Disease List */}
-      <div className="space-y-1.5 overflow-y-auto pr-1 max-h-[380px] flex-1">
+      <div className="space-y-1.5 overflow-y-auto pr-1 max-h-[300px] custom-scrollbar">
         {displayed.length === 0 ? (
           <div className="py-8 text-center text-slate-500 text-xs">
             No abnormal findings detected.
